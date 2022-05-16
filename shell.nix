@@ -1,25 +1,48 @@
 with (import <nixpkgs> {});
 let
-  build = pkgs.writeShellScriptBin "build" ''
+  fnlove = pkgs.writeShellScriptBin "fnlove" ''
     shopt -s globstar
 
-    mkdir -p .build/
-    rm -rf .build/*
-    cp -r $1/* .build/
+    build () {
+      mkdir -p .build/
+      rm -rf .build/*
+      cp -r src/* .build/
 
-    for f in .build/**/*.fnl
-    do 
-      fennel --compile $f > ''${f%.fnl}.lua
-      rm $f
-    done
+      for f in .build/**/*.fnl
+      do 
+        fennel --compile $f > ''${f%.fnl}.lua
+        rm $f
+      done
 
-    echo "Built! 🦾"
-  '';
-  runlove = pkgs.writeShellScriptBin "runlove" ''
-    build src/
-    echo "Running love with .build/ 💖"
-    love .build/
-    echo "Closed"
+      echo "Built! 🦾"
+    }
+
+    run () {
+      build
+      echo "Running love with .build/ 💖"
+      love .build/
+      echo "Closed"
+    }
+
+    publish () {
+      build
+      zip -9 -r $1.love .build/
+    }
+
+    case $1 in
+      build)
+        build
+        ;;
+      run)
+        run
+        ;;
+      publish)
+        publish $2
+        ;;
+      *)
+        echo "Please supply an argument."
+        ;;
+    esac
   '';
   love = stdenv.mkDerivation rec {
     name = "love-${version}";
@@ -43,8 +66,7 @@ mkShell {
     fnlfmt
     lua5_4
 
-    build
-    runlove
+    fnlove
     love
   ];
 }
